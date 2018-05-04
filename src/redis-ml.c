@@ -468,12 +468,13 @@ int MatrixMultiplyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     return REDISMODULE_OK;
 }
 
+
 /*Add matrices c=a+b. a and b are existng keys and c should be new /
 * overwritten
 * ml.matrix.add a b c
 */
 int MatrixAddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-    if (argc != 4) {
+    if (argc < 4) {
         return RedisModule_WrongArity(ctx);
     }
     RedisModule_AutoMemory(ctx);
@@ -487,19 +488,34 @@ int MatrixAddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
     a = RedisModule_ModuleTypeGetValue(key);
 
-    key = RedisModule_OpenKey(ctx, argv[2], REDISMODULE_READ);
-    type = RedisModule_KeyType(key);
-    if (type == REDISMODULE_KEYTYPE_EMPTY ||
-        RedisModule_ModuleTypeGetType(key) != MatrixType) {
-        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+//    key = RedisModule_OpenKey(ctx, argv[2], REDISMODULE_READ);
+//    type = RedisModule_KeyType(key);
+//    if (type == REDISMODULE_KEYTYPE_EMPTY ||
+//        RedisModule_ModuleTypeGetType(key) != MatrixType) {
+//        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+//    }
+//    b = RedisModule_ModuleTypeGetValue(key);
+
+    b = malloc(sizeof(Matrix));
+    b->values = NULL;
+    RMUtil_ParseArgs(argv, argc, 3, "ll", &(b->rows), &(b->cols));
+//    LG_DEBUG("rows: %lld, cols: %lld\n", m->rows, m->cols);
+    if (b->rows <= 0 || b->cols <= 0) {
+        return RedisModule_ReplyWithError(ctx, REDIS_ML_MATRIX_SET_BAD_DIMENTIONS);
     }
-    b = RedisModule_ModuleTypeGetValue(key);
+    b->values = realloc(b->values, b->cols * b->rows * sizeof(double));
+    int argIdx = 5;
+    while (argIdx < argc) {
+        RMUtil_ParseArgs(argv, argc, argIdx, "d", &b->values[argIdx - 5]);
+        argIdx++;
+    }
+
 
     if (b->rows != a->rows || b->cols != a->cols) {
         return RedisModule_ReplyWithError(ctx, REDIS_ML_MATRIX_ADD_BAD_DIMENTIONS);
     }
 
-    key = RedisModule_OpenKey(ctx, argv[3], REDISMODULE_READ | REDISMODULE_WRITE);
+    key = RedisModule_OpenKey(ctx, argv[2], REDISMODULE_READ | REDISMODULE_WRITE);
     type = RedisModule_KeyType(key);
     if (type != REDISMODULE_KEYTYPE_EMPTY &&
         RedisModule_ModuleTypeGetType(key) != MatrixType) {

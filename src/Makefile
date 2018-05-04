@@ -17,9 +17,15 @@ ifeq ($(uname_S),Linux)
 else
 	SHOBJ_CFLAGS ?= -dynamic -fno-common -g -ggdb
 	SHOBJ_LDFLAGS ?= -bundle -undefined dynamic_lookup -framework Accelerate
-	BLAS_INCLUDE ?= /System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Headers/
+	# set to open
+	BLAS := open
+	# uncomment below 2 lines
+	BLAS_INCLUDE := $(shell brew --prefix openblas)/include
+	BLAS_LIB := $(shell brew --prefix openblas)/lib
 endif
 
+LDFLAGS =  -L/usr/local/opt/openblas/lib
+CPPFLAGS = -I/usr/local/opt/openblas/include
 CFLAGS = -I$(RM_INCLUDE_DIR) -Wall -g -fPIC -O2 -std=gnu99 -pthread 
 CC=gcc
 
